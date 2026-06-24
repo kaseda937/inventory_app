@@ -4,7 +4,7 @@ from tkinter import ttk, filedialog, messagebox
 
 import openpyxl
 
-from . import config, printer, label_template
+from . import config, printer, label_template, test_print
 
 
 def read_excel(path: str) -> list[dict]:
@@ -54,6 +54,7 @@ class BatchPrintApp:
 
         ttk.Button(toolbar, text="選択行を印刷", command=self._print_selected).pack(side="right", padx=4)
         ttk.Button(toolbar, text="全件印刷", command=self._print_all).pack(side="right", padx=4)
+        ttk.Button(toolbar, text="A4テスト印刷", command=self._test_print).pack(side="right", padx=4)
 
         columns = ("row", "product_code", "product_name", "lot", "expiry", "qty")
         self.tree = ttk.Treeview(self.root, columns=columns, show="headings", selectmode="extended")
@@ -156,6 +157,25 @@ class BatchPrintApp:
             return
         items = [self.data[self.tree.index(item)] for item in selected]
         self._do_print(items)
+
+    def _test_print(self):
+        if not self.data:
+            messagebox.showwarning("対象なし", "先にExcelファイルを読み込んでください")
+            return
+        selected = self.tree.selection()
+        if selected:
+            items = [self.data[self.tree.index(item)] for item in selected]
+        else:
+            items = self.data
+
+        self.status.config(text=f"A4テスト印刷用画像を生成中... ({len(items)} 件)")
+        self.root.update_idletasks()
+
+        try:
+            test_print.print_test(items, qr_cell_size=self.cfg.get("qr_cell_size", 5))
+            self.status.config(text="A4テスト印刷をペイントに送信しました")
+        except Exception as e:
+            messagebox.showerror("テスト印刷エラー", str(e))
 
     def run(self):
         self.root.mainloop()
