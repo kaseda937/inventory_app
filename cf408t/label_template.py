@@ -16,8 +16,8 @@ TEXT_H = 40
 TEXT_LINE_HEIGHT = 80
 
 
-def format_qr_csv(product_code: str, lot: str, expiry: str, qty: int) -> str:
-    return f"{product_code},{lot},{expiry},{qty}"
+def format_qr_csv(product_code: str, lot: str, expiry: str, qty: int, row_num: int = 0) -> str:
+    return f"{product_code},{lot},{expiry},{qty},{row_num}"
 
 
 def build(
@@ -26,11 +26,12 @@ def build(
     lot: str,
     expiry: str,
     qty: int,
+    row_num: int = 0,
     qr_cell_size: int = 5,
     qr_error_level: str = "Q",
     copies: int = 1,
 ) -> bytes:
-    qr_data = format_qr_csv(product_code, lot, expiry, qty)
+    qr_data = format_qr_csv(product_code, lot, expiry, qty, row_num)
 
     v = TEXT_START_V
     text_items = [

@@ -30,14 +30,14 @@ def _try_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
-def render_label(product_code: str, lot: str, expiry: str, qty: int, qr_cell_size: int = 5) -> Image.Image:
+def render_label(product_code: str, lot: str, expiry: str, qty: int, row_num: int = 0, qr_cell_size: int = 5) -> Image.Image:
     w, h = _mm(LABEL_W_MM), _mm(LABEL_H_MM)
     img = Image.new("RGB", (w, h), "white")
     draw = ImageDraw.Draw(img)
 
     draw.rectangle([0, 0, w - 1, h - 1], outline="black", width=2)
 
-    qr_data = label_template.format_qr_csv(product_code, lot, expiry, qty)
+    qr_data = label_template.format_qr_csv(product_code, lot, expiry, qty, row_num)
     qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_Q, box_size=qr_cell_size, border=2)
     qr.add_data(qr_data)
     qr.make(fit=True)
@@ -78,7 +78,8 @@ def print_test(items: list[dict], qr_cell_size: int = 5):
     labels = []
     for item in items:
         labels.append(render_label(
-            item["product_code"], item["lot"], item["expiry"], item["qty"], qr_cell_size
+            item["product_code"], item["lot"], item["expiry"], item["qty"],
+            item.get("row_num", 0), qr_cell_size,
         ))
 
     # ラベルを縦に連結した1枚の画像にする

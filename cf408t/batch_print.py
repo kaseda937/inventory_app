@@ -132,6 +132,7 @@ class BatchPrintApp:
                     lot=d["lot"],
                     expiry=d["expiry"],
                     qty=d["qty"],
+                    row_num=d["row_num"],
                     qr_cell_size=self.cfg.get("qr_cell_size", 5),
                     qr_error_level=self.cfg.get("qr_error_correction", "Q"),
                 )
