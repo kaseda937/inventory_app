@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>棚卸アプリ</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#1a73e8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root {
+  --primary: #1a73e8;
+  --primary-dark: #1557b0;
+  --danger: #d93025;
+  --success: #188038;
+  --bg: #f8f9fa;
+  --card: #fff;
+  --border: #dadce0;
+  --text: #202124;
+  --text-secondary: #5f6368;
+  --shadow: 0 1px 3px rgba(0,0,0,.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: "Segoe UI", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding-bottom: 80px;
+}
+header {
+  background: var(--primary);
+  color: #fff;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow);
+}
+header h1 { font-size: 18px; font-weight: 600; }
+.badge {
+  background: rgba(255,255,255,.2);
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.section {
+  margin: 12px;
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.section-header {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Scanner */
+#scanner-section { position: relative; }
+#reader {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+#reader video { width: 100% !important; border-radius: 0; }
+.scanner-controls {
+  padding: 12px 16px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.scanner-result {
+  padding: 12px 16px;
+  background: #e8f5e9;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+  display: none;
+}
+.scanner-result.error { background: #fce8e6; }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-primary:disabled { background: #a0c4f1; cursor: not-allowed; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover { background: #b3261e; }
+.btn-outline {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover { background: #f1f3f4; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { background: #137333; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+/* Manual input */
+.manual-input {
+  padding: 12px 16px;
+  display: none;
+  border-top: 1px solid var(--border);
+}
+.manual-input.visible { display: block; }
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 12px; color: var(--text-secondary); }
+.form-group input {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* Table */
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 600px;
+}
+thead {
+  background: #f1f3f4;
+  position: sticky;
+  top: 0;
+}
+th {
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+tr:hover { background: #f8f9fa; }
+.qty-input {
+  width: 70px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 14px;
+  text-align: right;
+}
+.row-actions { white-space: nowrap; }
+.row-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 16px;
+  opacity: .6;
+}
+.row-actions button:hover { opacity: 1; }
+.empty-state {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Footer toolbar */
+.footer-toolbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  z-index: 100;
+  box-shadow: 0 -1px 3px rgba(0,0,0,.08);
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #323232;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  z-index: 200;
+  opacity: 0;
+  transition: opacity .3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* Duplicate highlight */
+.duplicate-row { background: #fff3e0 !important; }
+
+/* Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.visible { display: flex; }
+.modal {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 360px;
+  width: 90%;
+  text-align: center;
+}
+.modal h3 { margin-bottom: 8px; }
+.modal p { font-size: 14px; color: var(--text-secondary); margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 8px; justify-content: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>棚卸アプリ</h1>
+  <span class="badge" id="count-badge">0 件</span>
+</header>
+
+<!-- Scanner Section -->
+<div class="section" id="scanner-section">
+  <div class="section-header">
+    QRコード読み取り
+    <button class="btn btn-sm btn-outline" id="toggle-manual-btn" onclick="toggleManualInput()">手動入力</button>
+  </div>
+  <div id="reader"></div>
+  <div class="scanner-controls">
+    <button class="btn btn-primary" id="start-scan-btn" onclick="startScanner()">リアルタイムスキャン</button>
+    <button class="btn btn-outline" id="stop-scan-btn" onclick="stopScanner()" style="display:none;">スキャン停止</button>
+    <label class="btn btn-success" id="capture-btn">
+      写真で読取
+      <input type="file" accept="image/*" capture="environment" id="qr-capture-input" style="display:none;" onchange="handleCaptureQR(event)">
+    </label>
+    <select id="camera-select" class="btn btn-outline" style="display:none;"></select>
+  </div>
+  <div class="scanner-result" id="scan-result"></div>
+
+  <div class="manual-input" id="manual-input">
+    <div class="form-row">
+      <div class="form-group">
+        <label>商品コード</label>
+        <input type="text" id="m-code" placeholder="例: PRODUCT001">
+      </div>
+      <div class="form-group">
+        <label>ロット</label>
+        <input type="text" id="m-lot" placeholder="例: 1234">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>使用期限</label>
+        <input type="date" id="m-expiry">
+      </div>
+      <div class="form-group">
+        <label>棚卸数</label>
+        <input type="number" id="m-qty" placeholder="0" min="0">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="addManualEntry()" style="margin-top:8px;width:100%;">追加</button>
+  </div>
+</div>
+
+<!-- Data Table Section -->
+<div class="section">
+  <div class="section-header">
+    棚卸リスト
+    <button class="btn btn-sm btn-danger" onclick="confirmClearAll()">全件削除</button>
+  </div>
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>商品コード</th>
+          <th>ロット</th>
+          <th>使用期限</th>
+          <th>ラベル数</th>
+          <th>棚卸数</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="data-tbody"></tbody>
+    </table>
+    <div class="empty-state" id="empty-state">
+      QRコードをスキャンするとここに表示されます
+    </div>
+  </div>
+</div>
+
+<!-- Footer Toolbar -->
+<div class="footer-toolbar">
+  <div>
+    <button class="btn btn-outline" onclick="loadFromStorage()">復元</button>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-outline" onclick="importCSV()">CSV読込</button>
+    <button class="btn btn-success" onclick="exportCSV()">CSV出力</button>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal">
+    <h3 id="modal-title">確認</h3>
+    <p id="modal-message"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-danger" id="modal-confirm-btn">削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Hidden file input for CSV import -->
+<input type="file" id="csv-file-input" accept=".csv" style="display:none;" onchange="handleCSVImport(event)">
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+"use strict";
+
+const STORAGE_KEY = "inventory_data";
+let inventoryData = [];
+let html5QrCode = null;
+let scanning = false;
+
+// ─── QR Parse ───
+function parseQR(text) {
+  const parts = text.split(",");
+  if (parts.length < 4) return null;
+  const qty = parseInt(parts[3], 10);
+  if (isNaN(qty)) return null;
+  return {
+    product_code: parts[0].trim(),
+    lot: parts[1].trim(),
+    expiry: parts[2].trim(),
+    label_qty: qty,
+  };
+}
+
+// ─── Scanner ───
+async function startScanner() {
+  if (scanning) return;
+  const readerEl = document.getElementById("reader");
+  readerEl.style.display = "block";
+
+  if (!html5QrCode) {
+    html5QrCode = new Html5Qrcode("reader");
+  }
+
+  try {
+    const devices = await Html5Qrcode.getCameras();
+    if (!devices.length) {
+      showScanResult("カメラが見つかりません", true);
+      return;
+    }
+
+    const select = document.getElementById("camera-select");
+    if (select.options.length === 0) {
+      devices.forEach((d, i) => {
+        const opt = document.createElement("option");
+        opt.value = d.id;
+        opt.text = d.label || `カメラ ${i + 1}`;
+        select.appendChild(opt);
+      });
+    }
+    select.style.display = "inline-block";
+
+    const cameraId = select.value || devices[0].id;
+    await html5QrCode.start(
+      cameraId,
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      onScanSuccess
+    );
+    scanning = true;
+    document.getElementById("start-scan-btn").style.display = "none";
+    document.getElementById("stop-scan-btn").style.display = "inline-flex";
+  } catch (e) {
+    showScanResult("カメラ起動エラー: " + e, true);
+  }
+}
+
+async function stopScanner() {
+  if (!scanning || !html5QrCode) return;
+  try {
+    await html5QrCode.stop();
+  } catch (_) {}
+  scanning = false;
+  document.getElementById("start-scan-btn").style.display = "inline-flex";
+  document.getElementById("stop-scan-btn").style.display = "none";
+  document.getElementById("reader").style.display = "none";
+}
+
+function onScanSuccess(decodedText) {
+  const parsed = parseQR(decodedText);
+  if (!parsed) {
+    showScanResult("不明なQRフォーマット: " + decodedText, true);
+    return;
+  }
+
+  const duplicate = inventoryData.find(
+    (d) => d.product_code === parsed.product_code && d.lot === parsed.lot
+  );
+  if (duplicate) {
+    showScanResult(
+      `重複: ${parsed.product_code} / ロット ${parsed.lot} は既に登録済み`,
+      true
+    );
+    highlightDuplicate(duplicate);
+    return;
+  }
+
+  const entry = {
+    id: Date.now(),
+    product_code: parsed.product_code,
+    lot: parsed.lot,
+    expiry: parsed.expiry,
+    label_qty: parsed.label_qty,
+    count_qty: parsed.label_qty,
+    scanned_at: new Date().toISOString(),
+  };
+  inventoryData.push(entry);
+  renderTable();
+  saveToStorage();
+  showScanResult(`登録: ${parsed.product_code} / ロット ${parsed.lot}`);
+
+  if (navigator.vibrate) navigator.vibrate(100);
+}
+
+function showScanResult(msg, isError = false) {
+  const el = document.getElementById("scan-result");
+  el.textContent = msg;
+  el.className = "scanner-result" + (isError ? " error" : "");
+  el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 3000);
+}
+
+function highlightDuplicate(entry) {
+  const rows = document.querySelectorAll("#data-tbody tr");
+  rows.forEach((row) => {
+    if (row.dataset.id == entry.id) {
+      row.classList.add("duplicate-row");
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => row.classList.remove("duplicate-row"), 2000);
+    }
+  });
+}
+
+// ─── Capture (photo fallback) ───
+async function handleCaptureQR(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const scannerEl = document.getElementById("reader");
+  scannerEl.style.display = "block";
+  if (!html5QrCode) {
+    html5QrCode = new Html5Qrcode("reader");
+  }
+  try {
+    const result = await html5QrCode.scanFile(file, true);
+    onScanSuccess(result);
+  } catch (e) {
+    showScanResult("QRコードを検出できませんでした。もう一度撮影してください。", true);
+  }
+  scannerEl.style.display = "none";
+  event.target.value = "";
+}
+
+// ─── Camera switch ───
+document.getElementById("camera-select").addEventListener("change", async () => {
+  if (scanning) {
+    await stopScanner();
+    await startScanner();
+  }
+});
+
+// ─── Manual Input ───
+function toggleManualInput() {
+  const el = document.getElementById("manual-input");
+  el.classList.toggle("visible");
+  const btn = document.getElementById("toggle-manual-btn");
+  btn.textContent = el.classList.contains("visible") ? "閉じる" : "手動入力";
+}
+
+function addManualEntry() {
+  const code = document.getElementById("m-code").value.trim();
+  const lot = document.getElementById("m-lot").value.trim();
+  const expiry = document.getElementById("m-expiry").value;
+  const qty = parseInt(document.getElementById("m-qty").value, 10);
+
+  if (!code) { showToast("商品コードを入力してください"); return; }
+  if (!lot) { showToast("ロットを入力してください"); return; }
+  if (isNaN(qty) || qty < 0) { showToast("棚卸数を入力してください"); return; }
+
+  const duplicate = inventoryData.find(
+    (d) => d.product_code === code && d.lot === lot
+  );
+  if (duplicate) {
+    showToast("この商品コード・ロットは既に登録済みです");
+    return;
+  }
+
+  inventoryData.push({
+    id: Date.now(),
+    product_code: code,
+    lot: lot,
+    expiry: expiry || "",
+    label_qty: qty,
+    count_qty: qty,
+    scanned_at: new Date().toISOString(),
+  });
+  renderTable();
+  saveToStorage();
+  showToast("追加しました");
+
+  document.getElementById("m-code").value = "";
+  document.getElementById("m-lot").value = "";
+  document.getElementById("m-expiry").value = "";
+  document.getElementById("m-qty").value = "";
+}
+
+// ─── Table ───
+function renderTable() {
+  const tbody = document.getElementById("data-tbody");
+  const empty = document.getElementById("empty-state");
+  document.getElementById("count-badge").textContent = inventoryData.length + " 件";
+
+  if (!inventoryData.length) {
+    tbody.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  tbody.innerHTML = inventoryData
+    .map((d, i) => `
+      <tr data-id="${d.id}">
+        <td>${i + 1}</td>
+        <td>${esc(d.product_code)}</td>
+        <td>${esc(d.lot)}</td>
+        <td>${esc(d.expiry)}</td>
+        <td style="text-align:right">${d.label_qty}</td>
+        <td>
+          <input type="number" class="qty-input" value="${d.count_qty}" min="0"
+                 onchange="updateQty(${d.id}, this.value)">
+        </td>
+        <td class="row-actions">
+          <button title="削除" onclick="deleteRow(${d.id})">&#x2716;</button>
+        </td>
+      </tr>
+    `)
+    .join("");
+}
+
+function esc(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function updateQty(id, val) {
+  const entry = inventoryData.find((d) => d.id === id);
+  if (entry) {
+    entry.count_qty = parseInt(val, 10) || 0;
+    saveToStorage();
+  }
+}
+
+function deleteRow(id) {
+  inventoryData = inventoryData.filter((d) => d.id !== id);
+  renderTable();
+  saveToStorage();
+  showToast("削除しました");
+}
+
+// ─── Clear All ───
+function confirmClearAll() {
+  if (!inventoryData.length) return;
+  const modal = document.getElementById("confirm-modal");
+  document.getElementById("modal-title").textContent = "全件削除";
+  document.getElementById("modal-message").textContent =
+    `${inventoryData.length} 件のデータをすべて削除しますか？この操作は取り消せません。`;
+  document.getElementById("modal-confirm-btn").onclick = () => {
+    inventoryData = [];
+    renderTable();
+    saveToStorage();
+    closeModal();
+    showToast("全件削除しました");
+  };
+  modal.classList.add("visible");
+}
+
+function closeModal() {
+  document.getElementById("confirm-modal").classList.remove("visible");
+}
+
+// ─── Storage ───
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(inventoryData));
+  } catch (_) {}
+}
+
+function loadFromStorage() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      inventoryData = JSON.parse(saved);
+      renderTable();
+      showToast(`${inventoryData.length} 件復元しました`);
+    } else {
+      showToast("保存データがありません");
+    }
+  } catch (_) {
+    showToast("復元に失敗しました");
+  }
+}
+
+// ─── CSV Export ───
+function exportCSV() {
+  if (!inventoryData.length) {
+    showToast("エクスポートするデータがありません");
+    return;
+  }
+
+  const header = "商品コード,ロット,使用期限,ラベル数,棚卸数,差異,読取日時";
+  const rows = inventoryData.map((d) => {
+    const diff = d.count_qty - d.label_qty;
+    return [
+      d.product_code,
+      d.lot,
+      d.expiry,
+      d.label_qty,
+      d.count_qty,
+      diff,
+      d.scanned_at,
+    ].join(",");
+  });
+
+  const bom = "﻿";
+  const csv = bom + header + "\n" + rows.join("\n") + "\n";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+
+  const now = new Date();
+  const ts = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+    "_",
+    String(now.getHours()).padStart(2, "0"),
+    String(now.getMinutes()).padStart(2, "0"),
+  ].join("");
+  const filename = `棚卸_${ts}.csv`;
+
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast(`${filename} をダウンロードしました`);
+}
+
+// ─── CSV Import ───
+function importCSV() {
+  document.getElementById("csv-file-input").click();
+}
+
+function handleCSVImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const lines = e.target.result.split("\n").filter((l) => l.trim());
+    let imported = 0;
+    // skip header
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(",");
+      if (cols.length < 5) continue;
+      const code = cols[0].trim();
+      const lot = cols[1].trim();
+      if (inventoryData.find((d) => d.product_code === code && d.lot === lot)) continue;
+      inventoryData.push({
+        id: Date.now() + i,
+        product_code: code,
+        lot: lot,
+        expiry: cols[2].trim(),
+        label_qty: parseInt(cols[3], 10) || 0,
+        count_qty: parseInt(cols[4], 10) || 0,
+        scanned_at: cols[6] ? cols[6].trim() : new Date().toISOString(),
+      });
+      imported++;
+    }
+    renderTable();
+    saveToStorage();
+    showToast(`${imported} 件インポートしました`);
+  };
+  reader.readAsText(file, "utf-8");
+  event.target.value = "";
+}
+
+// ─── Toast ───
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2500);
+}
+
+// ─── Service Worker ───
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
+
+// ─── Init ───
+(function init() {
+  // Auto-restore on load
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      inventoryData = JSON.parse(saved);
+      renderTable();
+    }
+  } catch (_) {}
+})();
+</script>
+</body>
+</html>
