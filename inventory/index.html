@@ -437,21 +437,24 @@ barcodeInput.addEventListener("blur", () => {
 });
 
 barcodeInput.addEventListener("input", () => {
-  clearTimeout(barcodeTimer);
   const raw = barcodeInput.value;
   if (/[\r\n]/.test(raw)) {
+    clearTimeout(barcodeTimer);
     const lines = raw.split(/[\r\n]+/).map(s => s.trim()).filter(Boolean);
     barcodeInput.value = "";
     lines.forEach(line => processBarcodeInput(line));
     return;
   }
-  barcodeTimer = setTimeout(() => {
-    const text = barcodeInput.value.trim();
-    if (text) {
-      barcodeInput.value = "";
-      splitAndProcessQR(text);
-    }
-  }, 300);
+  if (!barcodeTimer) {
+    barcodeTimer = setTimeout(() => {
+      barcodeTimer = null;
+      const text = barcodeInput.value.trim();
+      if (text) {
+        barcodeInput.value = "";
+        splitAndProcessQR(text);
+      }
+    }, 300);
+  }
 });
 
 barcodeInput.addEventListener("keydown", (e) => {
