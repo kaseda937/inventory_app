@@ -69,13 +69,3 @@ def select_printer_dialog(parent: tk.Tk, default: str = "") -> str | None:
     return selected[0]
 
 
-def send_raw(printer_name: str, data: bytes):
-    h = win32print.OpenPrinter(printer_name)
-    try:
-        win32print.StartDocPrinter(h, 1, ("SBPL Label", None, "RAW"))
-        win32print.StartPagePrinter(h)
-        win32print.WritePrinter(h, data)
-        win32print.EndPagePrinter(h)
-        win32print.EndDocPrinter(h)
-    finally:
-        win32print.ClosePrinter(h)

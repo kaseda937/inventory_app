@@ -3,8 +3,6 @@ from pathlib import Path
 
 DEFAULT_CONFIG = {
     "printer_name": "",
-    "paper_width_mm": 80,
-    "paper_height_mm": 115,
     "qr_cell_size": 5,
     "qr_error_correction": "Q",
     "excel_path": "",

@@ -4,7 +4,7 @@ from tkinter import ttk, filedialog, messagebox
 
 import openpyxl
 
-from . import config, printer, label_template, test_print
+from . import config, printer, gdi_print, test_print
 
 
 def read_excel(path: str) -> list[dict]:
@@ -120,33 +120,24 @@ class BatchPrintApp:
             messagebox.showwarning("対象なし", "印刷するデータがありません")
             return
 
-        if not messagebox.askokcancel("印刷確認", f"{len(items)} 枚のラベルを印刷しますか?"):
+        from . import label_template
+        page_count = (len(items) + label_template.LABELS_PER_PAGE - 1) // label_template.LABELS_PER_PAGE
+        if not messagebox.askokcancel("印刷確認",
+                f"{len(items)} 枚のラベルを印刷します（A4 {page_count} ページ）\nよろしいですか?"):
             return
 
-        errors = []
-        for i, d in enumerate(items):
-            try:
-                sbpl_data = label_template.build(
-                    product_code=d["product_code"],
-                    product_name=d["product_name"],
-                    lot=d["lot"],
-                    expiry=d["expiry"],
-                    qty=d["qty"],
-                    row_num=d["row_num"],
-                    qr_cell_size=self.cfg.get("qr_cell_size", 5),
-                    qr_error_level=self.cfg.get("qr_error_correction", "Q"),
-                )
-                printer.send_raw(self.printer_name, sbpl_data)
-            except Exception as e:
-                errors.append(f"行{d['row_num']}: {e}")
+        self.status.config(text="印刷中...")
+        self.root.update_idletasks()
 
-            self.status.config(text=f"印刷中... {i + 1}/{len(items)}")
-            self.root.update_idletasks()
-
-        if errors:
-            messagebox.showerror("印刷エラー", "\n".join(errors))
-        else:
-            self.status.config(text=f"{len(items)} 枚の印刷が完了しました")
+        try:
+            gdi_print.print_items(
+                printer_name=self.printer_name,
+                items=items,
+                qr_cell_size=self.cfg.get("qr_cell_size", 5),
+            )
+            self.status.config(text=f"{len(items)} 枚のラベル印刷が完了しました（{page_count} ページ）")
+        except Exception as e:
+            messagebox.showerror("印刷エラー", str(e))
 
     def _print_all(self):
         self._do_print(self.data)
