@@ -445,16 +445,15 @@ barcodeInput.addEventListener("input", () => {
     lines.forEach(line => processBarcodeInput(line));
     return;
   }
-  if (!barcodeTimer) {
-    barcodeTimer = setTimeout(() => {
-      barcodeTimer = null;
-      const text = barcodeInput.value.trim();
-      if (text) {
-        barcodeInput.value = "";
-        splitAndProcessQR(text);
-      }
-    }, 800);
-  }
+  clearTimeout(barcodeTimer);
+  barcodeTimer = setTimeout(() => {
+    barcodeTimer = null;
+    const text = barcodeInput.value.trim();
+    if (text) {
+      barcodeInput.value = "";
+      splitAndProcessQR(text);
+    }
+  }, 500);
 });
 
 barcodeInput.addEventListener("keydown", (e) => {
