@@ -98,6 +98,7 @@ def compose_a4_pages(items: list[dict], qr_cell_size: int = 5) -> list[Image.Ima
 
     a4_w, a4_h = _mm(A4_W_MM), _mm(A4_H_MM)
     label_w, label_h = _mm(LABEL_W_MM), _mm(LABEL_H_MM)
+    offset_x = _mm(-2)
     pages = []
 
     for page_start in range(0, len(labels), label_template.LABELS_PER_PAGE):
@@ -107,7 +108,7 @@ def compose_a4_pages(items: list[dict], qr_cell_size: int = 5) -> list[Image.Ima
         for idx, lbl in enumerate(page_labels):
             col = idx % label_template.COLS
             row = idx // label_template.COLS
-            x = col * label_w
+            x = col * label_w + offset_x
             y = row * label_h
             page.paste(lbl, (x, y))
 

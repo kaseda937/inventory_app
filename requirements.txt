@@ -1,0 +1,5 @@
+openpyxl
+qrcode
+Pillow
+pywin32
+pyinstaller

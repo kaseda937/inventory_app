@@ -54,7 +54,6 @@ class BatchPrintApp:
 
         ttk.Button(toolbar, text="選択行を印刷", command=self._print_selected).pack(side="right", padx=4)
         ttk.Button(toolbar, text="全件印刷", command=self._print_all).pack(side="right", padx=4)
-        ttk.Button(toolbar, text="A4テスト印刷", command=self._test_print).pack(side="right", padx=4)
 
         columns = ("row", "product_code", "product_name", "lot", "expiry", "qty")
         self.tree = ttk.Treeview(self.root, columns=columns, show="headings", selectmode="extended")
