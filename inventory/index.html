@@ -438,13 +438,20 @@ barcodeInput.addEventListener("blur", () => {
 
 barcodeInput.addEventListener("input", () => {
   clearTimeout(barcodeTimer);
+  const raw = barcodeInput.value;
+  if (/[\r\n]/.test(raw)) {
+    const lines = raw.split(/[\r\n]+/).map(s => s.trim()).filter(Boolean);
+    barcodeInput.value = "";
+    lines.forEach(line => processBarcodeInput(line));
+    return;
+  }
   barcodeTimer = setTimeout(() => {
     const text = barcodeInput.value.trim();
     if (text) {
-      processBarcodeInput(text);
       barcodeInput.value = "";
+      splitAndProcessQR(text);
     }
-  }, 200);
+  }, 300);
 });
 
 barcodeInput.addEventListener("keydown", (e) => {
@@ -453,8 +460,8 @@ barcodeInput.addEventListener("keydown", (e) => {
     clearTimeout(barcodeTimer);
     const text = barcodeInput.value.trim();
     if (text) {
-      processBarcodeInput(text);
       barcodeInput.value = "";
+      splitAndProcessQR(text);
     }
   }
 });
@@ -465,6 +472,16 @@ function procesBarcodeResult(msg, isError) {
   el.className = "scanner-result" + (isError ? " error" : "");
   el.style.display = "block";
   setTimeout(() => { el.style.display = "none"; }, 3000);
+}
+
+function splitAndProcessQR(text) {
+  const re = /([A-Za-z0-9]+,\s*[^,]+,\s*\d{4}-\d{2}-\d{2},\s*\d+(?:,\s*\d+)?)/g;
+  const matches = text.match(re);
+  if (matches && matches.length > 0) {
+    matches.forEach(m => processBarcodeInput(m.trim()));
+  } else {
+    processBarcodeInput(text);
+  }
 }
 
 function processBarcodeInput(text) {
