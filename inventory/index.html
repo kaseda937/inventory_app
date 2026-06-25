@@ -230,6 +230,42 @@ tr:hover { background: #f8f9fa; }
 }
 .toast.show { opacity: 1; }
 
+/* Barcode reader */
+.barcode-input-area { padding: 12px 16px; }
+.barcode-field {
+  width: 100%;
+  padding: 14px 12px;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  font-size: 16px;
+  background: #e8f0fe;
+  text-align: center;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.barcode-field:focus {
+  border-color: var(--primary-dark);
+  box-shadow: 0 0 0 3px rgba(26,115,232,.25);
+  background: #fff;
+}
+.barcode-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+.barcode-status {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #e8eaed;
+  color: var(--text-secondary);
+}
+.barcode-status.active {
+  background: #e6f4ea;
+  color: var(--success);
+}
+
 /* Duplicate highlight */
 .duplicate-row { background: #fff3e0 !important; }
 
@@ -264,10 +300,23 @@ tr:hover { background: #f8f9fa; }
   <span class="badge" id="count-badge">0 件</span>
 </header>
 
-<!-- Scanner Section -->
+<!-- Barcode Reader Section -->
+<div class="section" id="barcode-section">
+  <div class="section-header">
+    バーコードリーダー入力
+    <span class="barcode-status" id="barcode-status">待機中</span>
+  </div>
+  <div class="barcode-input-area">
+    <input type="text" id="barcode-input" class="barcode-field" placeholder="ここをタップしてバーコードリーダーで読み取り" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none">
+    <div class="barcode-hint">Bluetooth バーコードリーダーで読み取ると自動登録されます</div>
+  </div>
+  <div class="scanner-result" id="barcode-result"></div>
+</div>
+
+<!-- Camera Scanner Section -->
 <div class="section" id="scanner-section">
   <div class="section-header">
-    QRコード読み取り
+    カメラ読み取り
     <button class="btn btn-sm btn-outline" id="toggle-manual-btn" onclick="toggleManualInput()">手動入力</button>
   </div>
   <div id="reader"></div>
@@ -371,6 +420,89 @@ const STORAGE_KEY = "inventory_data";
 let inventoryData = [];
 let html5QrCode = null;
 let scanning = false;
+
+// ─── Barcode Reader (HID keyboard mode) ───
+const barcodeInput = document.getElementById("barcode-input");
+const barcodeStatus = document.getElementById("barcode-status");
+let barcodeTimer = null;
+
+barcodeInput.addEventListener("focus", () => {
+  barcodeStatus.textContent = "入力待ち";
+  barcodeStatus.classList.add("active");
+});
+
+barcodeInput.addEventListener("blur", () => {
+  barcodeStatus.textContent = "待機中";
+  barcodeStatus.classList.remove("active");
+});
+
+barcodeInput.addEventListener("input", () => {
+  clearTimeout(barcodeTimer);
+  barcodeTimer = setTimeout(() => {
+    const text = barcodeInput.value.trim();
+    if (text) {
+      processBarcodeInput(text);
+      barcodeInput.value = "";
+    }
+  }, 200);
+});
+
+barcodeInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    clearTimeout(barcodeTimer);
+    const text = barcodeInput.value.trim();
+    if (text) {
+      processBarcodeInput(text);
+      barcodeInput.value = "";
+    }
+  }
+});
+
+function procesBarcodeResult(msg, isError) {
+  const el = document.getElementById("barcode-result");
+  el.textContent = msg;
+  el.className = "scanner-result" + (isError ? " error" : "");
+  el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 3000);
+}
+
+function processBarcodeInput(text) {
+  const parsed = parseQR(text);
+  if (!parsed) {
+    processBarcodeResult("不明なフォーマット: " + text, true);
+    return;
+  }
+
+  const duplicate = inventoryData.find(
+    (d) => d.product_code === parsed.product_code && d.lot === parsed.lot && d.row_num === parsed.row_num
+  );
+  if (duplicate) {
+    processBarcodeResult(
+      `重複: ${parsed.product_code} / ロット ${parsed.lot} (行${parsed.row_num}) は既に登録済み`,
+      true
+    );
+    highlightDuplicate(duplicate);
+    return;
+  }
+
+  const entry = {
+    id: Date.now(),
+    product_code: parsed.product_code,
+    lot: parsed.lot,
+    expiry: parsed.expiry,
+    label_qty: parsed.label_qty,
+    count_qty: parsed.label_qty,
+    row_num: parsed.row_num,
+    scanned_at: new Date().toISOString(),
+  };
+  inventoryData.push(entry);
+  renderTable();
+  saveToStorage();
+  processBarcodeResult(`登録: ${parsed.product_code} / ロット ${parsed.lot}`);
+
+  if (navigator.vibrate) navigator.vibrate(100);
+}
 
 // ─── QR Parse ───
 function parseQR(text) {
