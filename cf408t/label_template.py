@@ -11,5 +11,5 @@ LABELS_PER_PAGE = COLS * ROWS
 MARGIN_MM = 5
 
 
-def format_qr_csv(product_code: str, lot: str, expiry: str, qty: int, row_num: int = 0) -> str:
-    return f"{product_code},{lot},{expiry},{qty},{row_num}"
+def format_qr_csv(product_code: str, lot: str, expiry: str, qty: int, row_num: int = 0, slip_number: str = "") -> str:
+    return f"{product_code},{lot},{expiry},{qty},{row_num},{slip_number}"

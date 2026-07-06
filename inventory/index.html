@@ -370,6 +370,7 @@ tr:hover { background: #f8f9fa; }
           <th>商品コード</th>
           <th>ロット</th>
           <th>使用期限</th>
+          <th>伝票番号</th>
           <th>ラベル数</th>
           <th>棚卸数</th>
           <th></th>
@@ -477,7 +478,7 @@ function procesBarcodeResult(msg, isError) {
 }
 
 function splitAndProcessQR(text) {
-  const re = /([A-Za-z0-9]+,\s*[^,]+,\s*\d{4}-\d{2}-\d{2},\s*\d+(?:,\s*\d+)?)/g;
+  const re = /([A-Za-z0-9]+,\s*[^,]+,\s*\d{4}-\d{2}-\d{2},\s*\d+(?:,\s*\d+)?(?:,\s*[^,]*)?)/g;
   const matches = text.match(re);
   if (matches && matches.length > 0) {
     matches.forEach(m => processBarcodeInput(m.trim()));
@@ -513,6 +514,7 @@ function processBarcodeInput(text) {
     label_qty: parsed.label_qty,
     count_qty: parsed.label_qty,
     row_num: parsed.row_num,
+    slip_number: parsed.slip_number,
     scanned_at: new Date().toISOString(),
   };
   inventoryData.push(entry);
@@ -535,6 +537,7 @@ function parseQR(text) {
     expiry: parts[2].trim(),
     label_qty: qty,
     row_num: parts.length >= 5 ? parts[4].trim() : "0",
+    slip_number: parts.length >= 6 ? parts[5].trim() : "",
   };
 }
 
@@ -618,6 +621,7 @@ function onScanSuccess(decodedText) {
     label_qty: parsed.label_qty,
     count_qty: parsed.label_qty,
     row_num: parsed.row_num,
+    slip_number: parsed.slip_number,
     scanned_at: new Date().toISOString(),
   };
   inventoryData.push(entry);
@@ -697,6 +701,7 @@ function addManualEntry() {
     product_code: code,
     lot: lot,
     expiry: expiry || "",
+    slip_number: "",
     label_qty: qty,
     count_qty: qty,
     row_num: "0",
@@ -732,6 +737,7 @@ function renderTable() {
         <td>${esc(d.product_code)}</td>
         <td>${esc(d.lot)}</td>
         <td>${esc(d.expiry)}</td>
+        <td>${esc(d.slip_number || "")}</td>
         <td style="text-align:right">${d.label_qty}</td>
         <td>
           <input type="number" class="qty-input" value="${d.count_qty}" min="0"
@@ -816,13 +822,14 @@ function exportCSV() {
     return;
   }
 
-  const header = "商品コード,ロット,使用期限,ラベル数,棚卸数,差異,読取日時";
+  const header = "商品コード,ロット,使用期限,伝票番号,ラベル数,棚卸数,差異,読取日時";
   const rows = inventoryData.map((d) => {
     const diff = d.count_qty - d.label_qty;
     return [
       d.product_code,
       d.lot,
       d.expiry,
+      d.slip_number || "",
       d.label_qty,
       d.count_qty,
       diff,
@@ -876,10 +883,11 @@ function handleCSVImport(event) {
         product_code: code,
         lot: lot,
         expiry: cols[2].trim(),
-        label_qty: parseInt(cols[3], 10) || 0,
-        count_qty: parseInt(cols[4], 10) || 0,
+        slip_number: cols.length >= 8 ? cols[3].trim() : "",
+        label_qty: parseInt(cols[cols.length >= 8 ? 4 : 3], 10) || 0,
+        count_qty: parseInt(cols[cols.length >= 8 ? 5 : 4], 10) || 0,
         row_num: "0",
-        scanned_at: cols[6] ? cols[6].trim() : new Date().toISOString(),
+        scanned_at: cols[cols.length >= 8 ? 7 : 6] ? cols[cols.length >= 8 ? 7 : 6].trim() : new Date().toISOString(),
       });
       imported++;
     }

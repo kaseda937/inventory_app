@@ -37,7 +37,7 @@ def _try_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
-def render_label(product_code: str, lot: str, expiry: str, qty: int, row_num: int = 0, qr_cell_size: int = 5) -> Image.Image:
+def render_label(product_code: str, lot: str, expiry: str, qty: int, row_num: int = 0, qr_cell_size: int = 5, slip_number: str = "") -> Image.Image:
     w, h = _mm(LABEL_W_MM), _mm(LABEL_H_MM)
     margin = _mm(MARGIN_MM)
     img = Image.new("RGB", (w, h), "white")
@@ -53,7 +53,7 @@ def render_label(product_code: str, lot: str, expiry: str, qty: int, row_num: in
     qr_available_h = printable_h - text_block_h - _mm(2)
     qr_side = min(printable_w, qr_available_h)
 
-    qr_data = label_template.format_qr_csv(product_code, lot, expiry, qty, row_num)
+    qr_data = label_template.format_qr_csv(product_code, lot, expiry, qty, row_num, slip_number)
     qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_Q, box_size=1, border=0)
     qr.add_data(qr_data)
     qr.make(fit=True)
@@ -93,7 +93,7 @@ def compose_a4_pages(items: list[dict], qr_cell_size: int = 5) -> list[Image.Ima
     for item in items:
         labels.append(render_label(
             item["product_code"], item["lot"], item["expiry"], item["qty"],
-            item.get("row_num", 0), qr_cell_size,
+            item.get("row_num", 0), qr_cell_size, item.get("slip_number", ""),
         ))
 
     a4_w, a4_h = _mm(A4_W_MM), _mm(A4_H_MM)

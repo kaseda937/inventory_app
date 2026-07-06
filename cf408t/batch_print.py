@@ -26,6 +26,7 @@ def read_excel(path: str) -> list[dict]:
             "lot": str(row[2]),
             "expiry": expiry,
             "qty": int(row[4]),
+            "slip_number": str(row[5]) if len(row) > 5 and row[5] is not None else "",
         })
     wb.close()
     return rows
