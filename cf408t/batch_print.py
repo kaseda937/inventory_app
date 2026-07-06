@@ -56,12 +56,12 @@ class BatchPrintApp:
         ttk.Button(toolbar, text="選択行を印刷", command=self._print_selected).pack(side="right", padx=4)
         ttk.Button(toolbar, text="全件印刷", command=self._print_all).pack(side="right", padx=4)
 
-        columns = ("row", "product_code", "product_name", "lot", "expiry", "qty")
+        columns = ("row", "product_code", "product_name", "lot", "expiry", "qty", "slip_number")
         self.tree = ttk.Treeview(self.root, columns=columns, show="headings", selectmode="extended")
         headers = {"row": "#", "product_code": "商品コード", "product_name": "品名",
-                   "lot": "ロット", "expiry": "使用期限", "qty": "入荷数"}
-        widths = {"row": 40, "product_code": 120, "product_name": 180,
-                  "lot": 80, "expiry": 100, "qty": 80}
+                   "lot": "ロット", "expiry": "使用期限", "qty": "入荷数", "slip_number": "伝票番号"}
+        widths = {"row": 40, "product_code": 120, "product_name": 160,
+                  "lot": 80, "expiry": 100, "qty": 70, "slip_number": 100}
         for col in columns:
             self.tree.heading(col, text=headers[col])
             self.tree.column(col, width=widths[col], anchor="center" if col in ("row", "qty") else "w")
@@ -97,7 +97,7 @@ class BatchPrintApp:
         for d in self.data:
             self.tree.insert("", "end", values=(
                 d["row_num"], d["product_code"], d["product_name"],
-                d["lot"], d["expiry"], d["qty"],
+                d["lot"], d["expiry"], d["qty"], d["slip_number"],
             ))
 
         self.cfg["excel_path"] = path

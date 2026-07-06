@@ -46,7 +46,7 @@ def render_label(product_code: str, lot: str, expiry: str, qty: int, row_num: in
     font_size_px = _mm(FONT_SIZE_MM)
     font = _try_font(font_size_px)
     line_h = font_size_px + _mm(LINE_GAP_MM)
-    text_block_h = line_h * 2
+    text_block_h = line_h * 3
 
     printable_w = w - margin * 2
     printable_h = h - margin * 2
@@ -79,10 +79,16 @@ def render_label(product_code: str, lot: str, expiry: str, qty: int, row_num: in
         (margin, f"使用期限: {expiry}"),
         (margin + col_w, f"入荷数: {qty}"),
     ]
+    row3 = [
+        (margin, f"伝票番号: {slip_number}"),
+    ]
     for x, text in row1:
         draw.text((x, text_y), text, fill="black", font=font)
     text_y += line_h
     for x, text in row2:
+        draw.text((x, text_y), text, fill="black", font=font)
+    text_y += line_h
+    for x, text in row3:
         draw.text((x, text_y), text, fill="black", font=font)
 
     return img
