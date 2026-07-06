@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 DEFAULT_CONFIG = {
@@ -8,7 +9,10 @@ DEFAULT_CONFIG = {
     "excel_path": "",
 }
 
-CONFIG_PATH = Path(__file__).parent.parent / "config.json"
+if getattr(sys, 'frozen', False):
+    CONFIG_PATH = Path(sys.executable).parent / "config.json"
+else:
+    CONFIG_PATH = Path(__file__).parent.parent / "config.json"
 
 
 def load() -> dict:
