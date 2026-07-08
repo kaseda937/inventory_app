@@ -4,4 +4,4 @@ config.json
 ~$*
 build/
 dist/
-*.spec
+!build.spec
