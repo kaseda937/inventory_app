@@ -422,6 +422,23 @@ let inventoryData = [];
 let html5QrCode = null;
 let scanning = false;
 
+// ─── Beep sound (Web Audio API) ───
+let audioCtx = null;
+function playBeep() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = 1200;
+    osc.type = "sine";
+    gain.gain.value = 0.3;
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  } catch (_) {}
+}
+
 // ─── Barcode Reader (HID keyboard mode) ───
 const barcodeInput = document.getElementById("barcode-input");
 const barcodeStatus = document.getElementById("barcode-status");
@@ -521,7 +538,7 @@ function processBarcodeInput(text) {
   renderTable();
   saveToStorage();
   processBarcodeResult(`登録: ${parsed.product_code} / ロット ${parsed.lot}`);
-
+  playBeep();
   if (navigator.vibrate) navigator.vibrate(100);
 }
 
@@ -628,7 +645,7 @@ function onScanSuccess(decodedText) {
   renderTable();
   saveToStorage();
   showScanResult(`登録: ${parsed.product_code} / ロット ${parsed.lot}`);
-
+  playBeep();
   if (navigator.vibrate) navigator.vibrate(100);
 }
 
