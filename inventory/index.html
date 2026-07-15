@@ -836,6 +836,15 @@ function loadFromStorage() {
 const LARK_RELAY_URL = "https://lark-relay.kaseda937.workers.dev";
 const LARK_RELAY_TOKEN = "2054d7bf9b69b108e02529e887531d8c07523c968972afb9";
 
+// Lark Base の日時フィールドが解釈できる "YYYY/MM/DD HH:mm:ss" 形式(端末ローカル時刻)
+function formatDateTime(date) {
+  const p = (n) => String(n).padStart(2, "0");
+  return (
+    `${date.getFullYear()}/${p(date.getMonth() + 1)}/${p(date.getDate())} ` +
+    `${p(date.getHours())}:${p(date.getMinutes())}:${p(date.getSeconds())}`
+  );
+}
+
 async function sendToLark() {
   if (!inventoryData.length) {
     showToast("送信するデータがありません");
@@ -852,11 +861,11 @@ async function sendToLark() {
       product_code: d.product_code,
       lot: d.lot,
       expiry: d.expiry
-        ? new Date(d.expiry + "T00:00:00+09:00").getTime()
-        : null,
+        ? d.expiry.replaceAll("-", "/")
+        : "",
       slip_number: d.slip_number || "",
       count_qty: d.count_qty,
-      scanned_at: new Date(d.scanned_at).getTime(),
+      scanned_at: formatDateTime(new Date(d.scanned_at)),
     };
     try {
       const res = await fetch(LARK_RELAY_URL, {
