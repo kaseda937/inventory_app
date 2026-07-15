@@ -391,7 +391,6 @@ tr:hover { background: #f8f9fa; }
   </div>
   <div style="display:flex;gap:8px;">
     <button class="btn btn-outline" onclick="importCSV()">CSV読込</button>
-    <button class="btn btn-outline" onclick="openWebhookModal()" title="Webhook URL設定">⚙</button>
     <button class="btn btn-success" onclick="sendToLark()">Lark Baseに送信</button>
   </div>
 </div>
@@ -404,22 +403,6 @@ tr:hover { background: #f8f9fa; }
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal()">キャンセル</button>
       <button class="btn btn-danger" id="modal-confirm-btn">削除</button>
-    </div>
-  </div>
-</div>
-
-<!-- Webhook URL Modal -->
-<div class="modal-overlay" id="webhook-modal">
-  <div class="modal">
-    <h3>Lark Webhook URL設定</h3>
-    <p style="font-size:13px;color:#666;">Lark Base 自動化のWebhook URLを入力してください。この端末にのみ保存されます。</p>
-    <div class="form-group" style="margin-top:8px;">
-      <input type="url" id="webhook-url-input" placeholder="https://open.larksuite.com/... または https://open.feishu.cn/...">
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" onclick="closeWebhookModal()">キャンセル</button>
-      <button class="btn btn-danger" onclick="clearWebhookUrl()">削除</button>
-      <button class="btn btn-primary" onclick="saveWebhookUrl()">保存</button>
     </div>
   </div>
 </div>
@@ -849,45 +832,13 @@ function loadFromStorage() {
   }
 }
 
-// ─── Lark Base 送信 ───
-const WEBHOOK_STORAGE_KEY = "lark_webhook_url";
-
-function openWebhookModal() {
-  document.getElementById("webhook-url-input").value =
-    localStorage.getItem(WEBHOOK_STORAGE_KEY) || "";
-  document.getElementById("webhook-modal").classList.add("visible");
-}
-
-function closeWebhookModal() {
-  document.getElementById("webhook-modal").classList.remove("visible");
-}
-
-function saveWebhookUrl() {
-  const url = document.getElementById("webhook-url-input").value.trim();
-  if (!url || !url.startsWith("https://")) {
-    showToast("https:// で始まるURLを入力してください");
-    return;
-  }
-  localStorage.setItem(WEBHOOK_STORAGE_KEY, url);
-  closeWebhookModal();
-  showToast("Webhook URLを保存しました");
-}
-
-function clearWebhookUrl() {
-  localStorage.removeItem(WEBHOOK_STORAGE_KEY);
-  document.getElementById("webhook-url-input").value = "";
-  showToast("Webhook URLを削除しました");
-}
+// ─── Lark Base 送信(Cloudflare Worker 経由) ───
+const LARK_RELAY_URL = "https://lark-relay.kaseda937.workers.dev";
+const LARK_RELAY_TOKEN = "2054d7bf9b69b108e02529e887531d8c07523c968972afb9";
 
 async function sendToLark() {
   if (!inventoryData.length) {
     showToast("送信するデータがありません");
-    return;
-  }
-  const url = localStorage.getItem(WEBHOOK_STORAGE_KEY);
-  if (!url) {
-    showToast("Webhook URLを設定してください");
-    openWebhookModal();
     return;
   }
 
@@ -908,9 +859,12 @@ async function sendToLark() {
       scanned_at: new Date(d.scanned_at).getTime(),
     };
     try {
-      const res = await fetch(url, {
+      const res = await fetch(LARK_RELAY_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Auth-Token": LARK_RELAY_TOKEN,
+        },
         body: JSON.stringify(payload),
       });
       if (res.ok) ok++;
@@ -924,8 +878,7 @@ async function sendToLark() {
   if (fail === 0) {
     showToast(`${ok} 件をLark Baseに送信しました`);
   } else {
-    showToast(`送信: 成功 ${ok} 件 / 失敗 ${fail} 件。URLを確認してください`);
-    if (ok === 0) openWebhookModal();
+    showToast(`送信: 成功 ${ok} 件 / 失敗 ${fail} 件`);
   }
 }
 
