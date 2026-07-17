@@ -300,6 +300,26 @@ tr:hover { background: #f8f9fa; }
   <span class="badge" id="count-badge">0 件</span>
 </header>
 
+<!-- Warehouse Section -->
+<div class="section">
+  <div class="section-header">棚卸倉庫</div>
+  <div style="padding:12px 16px;">
+    <select id="warehouse-select" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:15px;" onchange="saveWarehouse()">
+      <option value="">-- 倉庫を選択してください --</option>
+      <option value="化粧品工場">化粧品工場</option>
+      <option value="高島倉庫">高島倉庫</option>
+      <option value="紙運輸倉庫1">紙運輸倉庫1</option>
+      <option value="新開第二倉庫">新開第二倉庫</option>
+      <option value="紙運輸倉庫2(新倉庫)">紙運輸倉庫2(新倉庫)</option>
+      <option value="紙運輸倉庫3(小倉庫)">紙運輸倉庫3(小倉庫)</option>
+      <option value="白石倉庫">白石倉庫</option>
+      <option value="バンテック倉庫">バンテック倉庫</option>
+      <option value="本社事務所">本社事務所</option>
+      <option value="奈良木倉庫">奈良木倉庫</option>
+    </select>
+  </div>
+</div>
+
 <!-- Barcode Reader Section -->
 <div class="section" id="barcode-section">
   <div class="section-header">
@@ -367,6 +387,7 @@ tr:hover { background: #f8f9fa; }
       <thead>
         <tr>
           <th>#</th>
+          <th>倉庫</th>
           <th>商品コード</th>
           <th>ロット</th>
           <th>使用期限</th>
@@ -418,6 +439,14 @@ tr:hover { background: #f8f9fa; }
 "use strict";
 
 const STORAGE_KEY = "inventory_data";
+const WAREHOUSE_KEY = "inventory_warehouse";
+
+function currentWarehouse() {
+  return document.getElementById("warehouse-select").value;
+}
+function saveWarehouse() {
+  try { localStorage.setItem(WAREHOUSE_KEY, currentWarehouse()); } catch (_) {}
+}
 let inventoryData = [];
 let html5QrCode = null;
 let scanning = false;
@@ -505,6 +534,10 @@ function splitAndProcessQR(text) {
 }
 
 function processBarcodeInput(text) {
+  if (!currentWarehouse()) {
+    processBarcodeResult("先に棚卸倉庫を選択してください", true);
+    return;
+  }
   const parsed = parseQR(text);
   if (!parsed) {
     processBarcodeResult("不明なフォーマット: " + text, true);
@@ -532,6 +565,7 @@ function processBarcodeInput(text) {
     count_qty: parsed.label_qty,
     row_num: parsed.row_num,
     slip_number: parsed.slip_number,
+    warehouse: currentWarehouse(),
     scanned_at: new Date().toISOString(),
   };
   inventoryData.push(entry);
@@ -612,6 +646,10 @@ async function stopScanner() {
 }
 
 function onScanSuccess(decodedText) {
+  if (!currentWarehouse()) {
+    showScanResult("先に棚卸倉庫を選択してください", true);
+    return;
+  }
   const parsed = parseQR(decodedText);
   if (!parsed) {
     showScanResult("不明なQRフォーマット: " + decodedText, true);
@@ -639,6 +677,7 @@ function onScanSuccess(decodedText) {
     count_qty: parsed.label_qty,
     row_num: parsed.row_num,
     slip_number: parsed.slip_number,
+    warehouse: currentWarehouse(),
     scanned_at: new Date().toISOString(),
   };
   inventoryData.push(entry);
@@ -709,6 +748,7 @@ function addManualEntry() {
   const expiry = document.getElementById("m-expiry").value;
   const qty = parseInt(document.getElementById("m-qty").value, 10);
 
+  if (!currentWarehouse()) { showToast("先に棚卸倉庫を選択してください"); return; }
   if (!code) { showToast("商品コードを入力してください"); return; }
   if (!lot) { showToast("ロットを入力してください"); return; }
   if (isNaN(qty) || qty < 0) { showToast("棚卸数を入力してください"); return; }
@@ -722,6 +762,7 @@ function addManualEntry() {
     label_qty: qty,
     count_qty: qty,
     row_num: "0",
+    warehouse: currentWarehouse(),
     scanned_at: new Date().toISOString(),
   });
   renderTable();
@@ -751,6 +792,7 @@ function renderTable() {
     .map((d, i) => `
       <tr data-id="${d.id}">
         <td>${i + 1}</td>
+        <td>${esc(d.warehouse || "")}</td>
         <td>${esc(d.product_code)}</td>
         <td>${esc(d.lot)}</td>
         <td>${esc(d.expiry)}</td>
@@ -864,6 +906,7 @@ async function sendToLark() {
         ? d.expiry.replaceAll("-", "/")
         : "",
       slip_number: d.slip_number || "",
+      warehouse: d.warehouse || "",
       count_qty: d.count_qty,
       scanned_at: formatDateTime(new Date(d.scanned_at)),
     };
@@ -945,6 +988,11 @@ if ("serviceWorker" in navigator) {
 
 // ─── Init ───
 (function init() {
+  // Restore warehouse selection
+  try {
+    const wh = localStorage.getItem(WAREHOUSE_KEY);
+    if (wh) document.getElementById("warehouse-select").value = wh;
+  } catch (_) {}
   // Auto-restore on load
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
