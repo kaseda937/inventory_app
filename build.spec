@@ -10,7 +10,7 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        'matplotlib', 'numpy', 'pandas', 'scipy', 'PIL',
+        'matplotlib', 'numpy', 'pandas', 'scipy',
         'email', 'html', 'http', 'xmlrpc', 'unittest',
         'pydoc', 'doctest', 'argparse', 'typing_extensions',
     ],
@@ -19,9 +19,16 @@ a = Analysis(
 
 pyz = PYZ(a.pure)
 
+splash = Splash(
+    'splash.png',
+    binaries=a.binaries,
+    datas=a.datas,
+)
+
 exe = EXE(
     pyz,
     a.scripts,
+    splash,
     [],
     exclude_binaries=True,
     name='バルク管理ラベル発行',
@@ -35,6 +42,7 @@ exe = EXE(
 
 coll = COLLECT(
     exe,
+    splash.binaries,
     a.binaries,
     a.datas,
     strip=False,

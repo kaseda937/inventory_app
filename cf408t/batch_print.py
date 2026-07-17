@@ -175,6 +175,11 @@ class BatchPrintApp:
 
 def main():
     app = BatchPrintApp()
+    try:  # PyInstaller スプラッシュ画面を閉じる（未frozen時は存在しない）
+        import pyi_splash
+        pyi_splash.close()
+    except ImportError:
+        pass
     app.run()
 
 
