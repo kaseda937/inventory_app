@@ -76,7 +76,7 @@ def render_label(product_code: str, lot: str, expiry: str, qty: int, row_num: in
         (margin + col_w, f"ﾛｯﾄ: {lot}"),
     ]
     row2 = [
-        (margin, f"使用期限: {expiry}"),
+        (margin, f"使用期限: {label_template.format_expiry_display(expiry)}"),
         (margin + col_w, f"入荷数: {qty}"),
     ]
     row3 = [

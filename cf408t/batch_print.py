@@ -8,13 +8,20 @@ from . import config, printer, gdi_print, test_print
 
 
 def read_excel(path: str) -> list[dict]:
-    wb = openpyxl.load_workbook(path, read_only=True)
+    # data_only=True: 数式セルは数式ではなくExcelが保存した計算結果を読む
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     ws = wb.active
     rows = []
     for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True)):
         if row[0] is None:
             continue
         expiry = row[3]
+        if expiry is None:
+            raise ValueError(
+                f"{i + 2}行目の使用期限が空です。\n"
+                "数式で計算している場合は、Excelでファイルを開いて上書き保存してから"
+                "読み込んでください（計算結果が保存されていないと読み取れません）。"
+            )
         if hasattr(expiry, "strftime"):
             expiry = expiry.strftime("%Y-%m-%d")
         else:
