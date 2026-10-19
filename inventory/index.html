@@ -515,7 +515,7 @@ barcodeInput.addEventListener("keydown", (e) => {
   }
 });
 
-function procesBarcodeResult(msg, isError) {
+function processBarcodeResult(msg, isError) {
   const el = document.getElementById("barcode-result");
   el.textContent = msg;
   el.className = "scanner-result" + (isError ? " error" : "");
@@ -546,10 +546,11 @@ function processBarcodeInput(text) {
 
   const duplicate = inventoryData.find(
     (d) => d.product_code === parsed.product_code && d.lot === parsed.lot && d.row_num === parsed.row_num
+      && (d.slip_number || "") === parsed.slip_number
   );
   if (duplicate) {
     processBarcodeResult(
-      `重複: ${parsed.product_code} / ロット ${parsed.lot} (行${parsed.row_num}) は既に登録済み`,
+      `重複: ${parsed.product_code} / ロット ${parsed.lot} (行${parsed.row_num}${parsed.slip_number ? " / 伝票 " + parsed.slip_number : ""}) は既に登録済み`,
       true
     );
     highlightDuplicate(duplicate);
@@ -658,10 +659,11 @@ function onScanSuccess(decodedText) {
 
   const duplicate = inventoryData.find(
     (d) => d.product_code === parsed.product_code && d.lot === parsed.lot && d.row_num === parsed.row_num
+      && (d.slip_number || "") === parsed.slip_number
   );
   if (duplicate) {
     showScanResult(
-      `重複: ${parsed.product_code} / ロット ${parsed.lot} (行${parsed.row_num}) は既に登録済み`,
+      `重複: ${parsed.product_code} / ロット ${parsed.lot} (行${parsed.row_num}${parsed.slip_number ? " / 伝票 " + parsed.slip_number : ""}) は既に登録済み`,
       true
     );
     highlightDuplicate(duplicate);

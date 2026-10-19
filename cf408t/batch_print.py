@@ -12,15 +12,16 @@ def read_excel(path: str) -> list[dict]:
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     ws = wb.active
     rows = []
-    seen_row_nums = {}
+    seen_keys = {}
     # 列: A=行番号 B=商品コード C=品名 D=ロット E=使用期限 F=入荷数 G=伝票番号 H=製造年月日
     # H列の製造年月日は読み込まない
     for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True)):
         row_num, row = (row[0] if row else None), row[1:]  # A列（行番号）を分離
         if not row or row[0] is None:
             continue
-        # 行番号はQRに入り、棚卸アプリの重複判定（商品コード+ロット+行番号）に使われるため
-        # 空欄・整数以外・重複は読み込み時に止める
+        slip_number = str(row[5]) if len(row) > 5 and row[5] is not None else ""
+        # 行番号はQRに入り、棚卸アプリの重複判定（商品コード+ロット+行番号+伝票番号）に使われるため
+        # 空欄・整数以外、および行番号+伝票番号の重複は読み込み時に止める
         if isinstance(row_num, float) and row_num.is_integer():
             row_num = int(row_num)
         elif isinstance(row_num, str) and row_num.strip().isdigit():
@@ -31,12 +32,14 @@ def read_excel(path: str) -> list[dict]:
                 "数式で計算している場合は、Excelでファイルを開いて上書き保存してから"
                 "読み込んでください（計算結果が保存されていないと読み取れません）。"
             )
-        if row_num in seen_row_nums:
+        key = (row_num, slip_number)
+        if key in seen_keys:
+            slip_label = f"伝票番号 {slip_number}" if slip_number else "伝票番号なし"
             raise ValueError(
-                f"行番号 {row_num} が {seen_row_nums[row_num]}行目と{i + 2}行目で重複しています。\n"
-                "行番号（A列）は行ごとに異なる番号にしてください。"
+                f"行番号 {row_num}（{slip_label}）が {seen_keys[key]}行目と{i + 2}行目で重複しています。\n"
+                "同じ伝票番号の中では、行番号（A列）を行ごとに異なる番号にしてください。"
             )
-        seen_row_nums[row_num] = i + 2
+        seen_keys[key] = i + 2
         expiry = row[3]
         if expiry is None:
             raise ValueError(
@@ -55,7 +58,7 @@ def read_excel(path: str) -> list[dict]:
             "lot": str(row[2]),
             "expiry": expiry,
             "qty": int(row[4]),
-            "slip_number": str(row[5]) if len(row) > 5 and row[5] is not None else "",
+            "slip_number": slip_number,
         })
     wb.close()
     return rows
