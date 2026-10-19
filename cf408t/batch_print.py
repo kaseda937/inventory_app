@@ -12,8 +12,11 @@ def read_excel(path: str) -> list[dict]:
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     ws = wb.active
     rows = []
+    # 列: A=行番号 B=商品コード C=品名 D=ロット E=使用期限 F=入荷数 G=伝票番号 H=製造年月日
+    # A列の行番号・H列の製造年月日は読み込まない（QRの行番号はExcelの行番号を使う）
     for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True)):
-        if row[0] is None:
+        row = row[1:]  # A列（行番号）を除外
+        if not row or row[0] is None:
             continue
         expiry = row[3]
         if expiry is None:
